@@ -766,6 +766,49 @@
 
     </div>
 
+    <script>
+        document.addEventListener('keydown', (e) => {
+            // 입력 필드 포커스 시 단축키 비활성화
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            const wrapper = document.querySelector('.presentation-wrapper');
+            const slides = Array.from(document.querySelectorAll('.slide'));
+            const currentScroll = wrapper.scrollTop;
+
+            if (e.key === '1') {
+                // 다음 슬라이드로 이동
+                let nextSlide = null;
+                for (let i = 0; i < slides.length; i++) {
+                    if (slides[i].offsetTop > currentScroll + 10) {
+                        nextSlide = slides[i];
+                        break;
+                    }
+                }
+                if (nextSlide) {
+                    wrapper.scrollTo({
+                        top: nextSlide.offsetTop,
+                        behavior: 'smooth'
+                    });
+                }
+            } else if (e.key === '2') {
+                // 이전 슬라이드로 이동 (선택적 추가 기능)
+                let prevSlide = null;
+                for (let i = slides.length - 1; i >= 0; i--) {
+                    if (slides[i].offsetTop < currentScroll - 10) {
+                        prevSlide = slides[i];
+                        break;
+                    }
+                }
+                if (prevSlide) {
+                    wrapper.scrollTo({
+                        top: prevSlide.offsetTop,
+                        behavior: 'smooth'
+                    });
+                }
+            }
+        });
+    </script>
+
 </body>
 
 </html>
