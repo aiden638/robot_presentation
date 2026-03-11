@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Robot Kinematics Masterclass</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- MathJax -->
+    <script>
+        MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        html,
+        body {
+            font-family: "Noto Sans KR", sans-serif;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #f8fafc;
+        }
+
+        .presentation-wrapper {
+            width: 100%;
+            height: 100%;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            scroll-snap-type: y mandatory;
+        }
+
+        .slide {
+            height: 100%;
+            width: 100%;
+            scroll-snap-align: start;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+
+        .content {
+            max-width: 1600px;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #1e293b;
+        }
+
+        .subtitle {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #334155;
+            border-bottom: 3px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+
+        .text {
+            font-size: 1.25rem;
+            line-height: 1.8;
+            color: #475569;
+        }
+
+        .math-box {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            margin: 20px 0;
+            text-align: center;
+            font-size: 1.3rem;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 40px;
+            align-items: stretch;
+        }
+
+        .highlight {
+            color: #2563eb;
+            font-weight: bold;
+        }
+
+        /* YouTube Embed Wrapper */
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%;
+            /* 16:9 */
+            height: 0;
+            overflow: hidden;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            margin-top: 20px;
+        }
+
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .img-container {
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            background: white;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .img-container img {
+            max-width: 100%;
+            max-height: 60vh;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div class="presentation-wrapper">
+
+        <!-- Intro -->
+        <section class="slide bg-slate-900 text-white">
+            <div class="content text-center">
+                <h1 class="title text-white" style="font-size: 5rem; margin-bottom: 40px;">로봇 운동학과 행렬</h1>
+                <p class="text text-slate-300 mt-8" style="font-size: 2rem;">
+                    로봇 공학에서 가장 중요한 기초인 <strong>운동학(Kinematics)</strong>에 대해 알아봅시다.
+                </p>
+                <div class="mt-16 bg-slate-800 p-10 rounded-3xl max-w-5xl mx-auto shadow-2xl border border-slate-700">
+                    <p class="text text-slate-200" style="font-size: 1.4rem;">
+                        복잡한 로봇 팔의 움직임을 <strong>행렬(Matrix)</strong>을 이용하여 수학적으로 표현하고 분석합니다.
+                        본 프레젠테이션은 Gemini,Chatgpt,Antigravity를 활용하여 제작되었습니다.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Forward & Inverse -->
+        <section class="slide bg-white">
+            <div class="content">
+                <h2 class="title text-center mb-12">순운동학과 역운동학</h2>
+                <div class="grid-2">
+                    <div
+                        class="bg-blue-50 p-10 rounded-3xl shadow-sm border border-blue-100 h-full flex flex-col justify-center">
+                        <div class="text-blue-600 mb-6 text-4xl"><i class="fas fa-arrow-right"></i></div>
+                        <h3 class="subtitle text-blue-800 border-blue-200">1. 순운동학 (Forward Kinematics)</h3>
+                        <p class="text mb-6 italic text-blue-700 font-medium">"관절을 이렇게 꺾으면 로봇 손끝은 어디로 갈까?"</p>
+                        <p class="text">
+                            모든 <strong>관절 각도($\phi$)</strong>가 주어졌을 때 목표 <strong>위치(x, y)</strong>를 도출합니다. 답이 유일하게 존재하여
+                            모터에 명령을 내린 후 로봇의 현재 상태를 파악하는 데 쓰입니다.
+                        </p>
+                        <div class="math-box font-mono mt-8">
+                            $$ x = l_1\cos\phi_1 + l_2\cos(\phi_1+\phi_2) + l_3\cos(\phi_1+\phi_2+\phi_3) $$
+                            $$ y = l_1\sin\phi_1 + l_2\sin(\phi_1+\phi_2) + l_3\sin(\phi_1+\phi_2+\phi_3) $$
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-red-50 p-10 rounded-3xl shadow-sm border border-red-100 h-full flex flex-col justify-center">
+                        <div class="text-red-600 mb-6 text-4xl"><i class="fas fa-undo"></i></div>
+                        <h3 class="subtitle text-red-800 border-red-200">2. 역운동학 (Inverse Kinematics)</h3>
+                        <p class="text mb-6 italic text-red-700 font-medium">"물건을 집으려면 관절을 어떻게 꺾어야 할까?"</p>
+                        <p class="text">
+                            목표 <strong>손끝 위치</strong>가 주어졌을 때 필요한 <strong>관절 각도</strong>를 역산합니다. 인간이 로봇에게 '좌표'로 명령을 내릴 때
+                            제어기가 내부적으로 변환하는 필수 과정입니다.
+                        </p>
+                        <ul class="text mt-8 list-disc list-inside text-red-900 opacity-80 space-y-4">
+                            <li>해(Solution)가 2개 이상일 수 있습니다 (예: 위로 꺾는 팔, 아래로 꺾는 팔).</li>
+                            <li>로봇 팔 길이를 벗어난 좌표는 해가 존재할 수 없습니다.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Rotation 1 -->
+        <section class="slide bg-slate-50">
+            <div class="content">
+                <h2 class="title text-center mb-10">회전 행렬의 이해 (1)</h2>
+                <div class="grid-2">
+                    <div class="flex flex-col justify-center">
+                        <p class="text mb-8">
+                            3차원 공간에서 벡터를 회전시키는 가장 직관적이고 기본적인 도구가 바로 <span class="highlight text-2xl">회전 행렬</span>입니다.
+                        </p>
+                        <ul
+                            class="text space-y-6 list-disc list-inside bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                            <li><strong>직교성:</strong> 회전 행렬은 직교 행렬(Orthogonal Matrix)입니다.</li>
+                            <li><strong>보존성:</strong> 회전 변환 후에도 원래 벡터의 길이(크기)는 절대 변하지 않습니다.</li>
+                            <li><strong>계산:</strong> 주어진 벡터 $P$에 회전 행렬 $Rot(\phi)$를 곱해 새로운 좌표 $P'$를 구합니다.</li>
+                        </ul>
+                        <div class="math-box font-bold mt-8">
+                            $$ P' = Rot(\phi) \cdot P $$
+                        </div>
+                    </div>
+                    <div class="img-container">
+                        <img src="image/rot_1.png" alt="회전 행렬 1">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Rotation 2 -->
+        <section class="slide bg-white">
+            <div class="content">
+                <h2 class="title text-center mb-10">회전 행렬의 이해 (2)</h2>
+                <div class="grid-2">
+                    <div class="img-container">
+                        <img src="image/rot_2.png" alt="회전 행렬 2">
+                    </div>
+                    <div class="flex flex-col justify-center">
+                        <p class="text mb-8">
+                            좌표계 간의 회전 관계나 한 좌표계 내에서의 특정 각도 회전 모두 동일한 형태의 행렬로 정의할 수 있습니다.
+                        </p>
+                        <div class="bg-blue-50 p-8 rounded-2xl shadow-sm border border-blue-100">
+                            <h3 class="subtitle border-none text-blue-900 mb-4">기본 2D 회전 행렬</h3>
+                            <div class="math-box bg-white text-xl">
+                                $$ Rot(\phi) = \begin{bmatrix} \cos\phi & -\sin\phi \\ \sin\phi & \cos\phi \end{bmatrix}
+                                $$
+                            </div>
+                            <p class="text text-sm text-blue-800 mt-6 text-center">
+                                * 기준 좌표계에 대해 물체의 기울어짐을 삼각함수로 직관적으로 도출해냅니다.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Interactive Simulation (arm3.py) -->
+        <section class="slide bg-slate-900 border-t-8 border-slate-700">
+            <div class="content">
+                <h2 class="title text-center mb-8 text-white">3. 로봇 구동 시뮬레이션 (Interactive)</h2>
+                <p class="text text-center text-slate-400 mb-8 max-w-4xl mx-auto">
+                    파이썬 <code>arm3.py</code> 코드를 웹으로 이식한 <strong>평면 3링크 매니퓰레이터</strong> 환경입니다. <br>
+                    관절(점)을 클릭하여 <span class="text-red-400">빨간색</span>으로 선택한 후 하단의 역학 제어 버튼들을 눌러보세요.
+                </p>
+
+                <div class="grid-2 gap-10 items-start">
+                    <!-- Canvas Area -->
+                    <div
+                        class="bg-white rounded-3xl p-6 shadow-2xl relative overflow-hidden flex flex-col items-center">
+                        <canvas id="robotCanvas" width="600" height="400"
+                            class="border border-slate-200 rounded-2xl bg-slate-50 cursor-crosshair"></canvas>
+
+                        <!-- Controls -->
+                        <div class="flex space-x-4 mt-6">
+                            <button id="btnExtParams"
+                                class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-all active:scale-95 flex items-center">
+                                <i class="fas fa-arrows-alt-h mr-2"></i> 연장 (Hold)
+                            </button>
+                            <button id="btnConfirm"
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-all active:scale-95">
+                                확정
+                            </button>
+                            <div class="w-px bg-slate-200 mx-2"></div>
+                            <button id="btnRotPos"
+                                class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-all active:scale-95 flex items-center">
+                                <i class="fas fa-undo mr-2"></i> 회전 +
+                            </button>
+                            <button id="btnRotNeg"
+                                class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-all active:scale-95 flex items-center">
+                                <i class="fas fa-redo mr-2"></i> 회전 -
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Formula & Info Area -->
+                    <div class="flex flex-col justify-center h-full space-y-8">
+                        <div class="bg-slate-800 p-8 rounded-3xl shadow-lg border border-slate-700">
+                            <h3 class="text-xl font-bold text-slate-200 mb-4 border-b border-slate-600 pb-2">실시간 순운동학
+                                행렬식</h3>
+                            <pre id="formulaDisplay"
+                                class="text-green-400 font-mono text-sm overflow-x-auto whitespace-pre leading-relaxed py-4 min-h-[150px]">Formula Output</pre>
+                        </div>
+
+                        <div class="bg-slate-800 p-8 rounded-3xl shadow-lg border border-slate-700 text-slate-300">
+                            <h3 class="text-xl font-bold text-slate-200 mb-4 border-b border-slate-600 pb-2"><i
+                                    class="fas fa-gamepad mr-2 text-indigo-400"></i> 조작 방법</h3>
+                            <ul class="space-y-4 text-[1rem]">
+                                <li class="flex items-start"><i class="fas fa-mouse-pointer mt-1 text-blue-400 w-6"></i>
+                                    <span><strong>관절 선택:</strong> 검은색 점(관절)을 클릭하면 빨간색으로 활성화됩니다.</span>
+                                </li>
+                                <li class="flex items-start"><i class="fas fa-plus mt-1 text-emerald-400 w-6"></i>
+                                    <span><strong>링크 추가:</strong> 원점(0,0)에서 [연장] 버튼을 꾹 누르고 있다가 [확정]을 누르면 새 링크가 베이스에
+                                        추가됩니다. 최초엔 링크가 비어있습니다.</span>
+                                </li>
+                                <li class="flex items-start"><i class="fas fa-sync mt-1 text-indigo-400 w-6"></i>
+                                    <span><strong>회전:</strong> 사용할 관절을 선택 후 [회전 +/-] 버튼을 꾹 누르세요.</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                // --- arm3.py JavaScript Port ---
+                const canvas = document.getElementById('robotCanvas');
+                const ctx = canvas.getContext('2d');
+                const formulaDisplay = document.getElementById('formulaDisplay');
+
+                const ORIGIN_X = 150;
+                const ORIGIN_Y = 200;
+                const STEP_EXTEND = 2;
+                const STEP_ROTATE = (2 * Math.PI) / 180; // 2 degrees in radians
+
+                // [(length, angle), ...]
+                let vectors = [[100, 0], [80, 0.5], [60, 1.2]]; // Initial 3 links for demonstration
+
+                let previewLen = 0;
+                let extending = false;
+                let rotDir = 0;
+                let selectedJoint = null;
+
+                function computePoints() {
+                    let pts = [[0, 0]];
+                    let x = 0, y = 0, angleSum = 0;
+
+                    for (let i = 0; i < vectors.length; i++) {
+                        let length = vectors[i][0];
+                        let angle = vectors[i][1];
+
+                        angleSum += angle;
+                        x += length * Math.cos(angleSum);
+                        y += length * Math.sin(angleSum); // Note: Canvas Y is flipped down, but we do standard math here
+                        pts.push([x, y]);
+                    }
+                    return pts;
+                }
+
+                function draw() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    // Grid & Origin marking
+                    ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.moveTo(0, ORIGIN_Y); ctx.lineTo(canvas.width, ORIGIN_Y); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(ORIGIN_X, 0); ctx.lineTo(ORIGIN_X, canvas.height); ctx.stroke();
+
+                    let pts = computePoints();
+                    let screenPts = pts.map(p => [ORIGIN_X + p[0], ORIGIN_Y - p[1]]); // Invert Y for screen coordinate
+
+                    // Draw Lines
+                    ctx.strokeStyle = '#334155';
+                    ctx.lineWidth = 6;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    for (let i = 0; i < screenPts.length - 1; i++) {
+                        ctx.moveTo(screenPts[i][0], screenPts[i][1]);
+                        ctx.lineTo(screenPts[i + 1][0], screenPts[i + 1][1]);
+                    }
+                    ctx.stroke();
+
+                    // Draw Preview Link Extension
+                    if (extending) {
+                        ctx.strokeStyle = '#10b981'; // emerald-500
+                        ctx.lineWidth = 4;
+                        ctx.setLineDash([5, 5]);
+                        ctx.beginPath();
+                        ctx.moveTo(ORIGIN_X, ORIGIN_Y);
+                        ctx.lineTo(ORIGIN_X + previewLen, ORIGIN_Y);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+
+                    // Draw Joints (Points)
+                    for (let i = 0; i < screenPts.length; i++) {
+                        ctx.fillStyle = (selectedJoint === i) ? '#ef4444' : '#1e293b'; // red or dark slate
+                        ctx.beginPath();
+                        ctx.arc(screenPts[i][0], screenPts[i][1], 8, 0, 2 * Math.PI);
+                        ctx.fill();
+
+                        // Joint label
+                        if (i > 0) {
+                            ctx.fillStyle = '#64748b';
+                            ctx.font = '10px sans-serif';
+                            ctx.fillText(`J${i}`, screenPts[i][0] + 10, screenPts[i][1] - 10);
+                        }
+                    }
+                }
+
+                function buildFormula() {
+                    if (vectors.length === 0) {
+                        formulaDisplay.textContent = "No Links available.\nExtend and Confirm to add.";
+                        return;
+                    }
+
+                    let top = "";
+                    let bottom = "";
+
+                    for (let i = 0; i < vectors.length; i++) {
+                        let length = vectors[i][0];
+                        let idx = i + 1;
+
+                        let seq = Array.from({ length: idx }, (_, k) => k + 1).join('');
+                        let cosTerm = `C${seq}`;
+                        let sinTerm = `S${seq}`;
+
+                        top += `[${cosTerm}  -${sinTerm}][${length.toFixed(1)}]`;
+                        bottom += `[${sinTerm}   ${cosTerm}][ 0 ]`;
+
+                        if (i < vectors.length - 1) {
+                            top += " + ";
+                            bottom += "   ";
+                        }
+                    }
+                    formulaDisplay.textContent = top + "\n" + bottom;
+                }
+
+                // Interaction Logic
+                canvas.addEventListener('mousedown', (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const mx = e.clientX - rect.left;
+                    const my = e.clientY - rect.top;
+
+                    let pts = computePoints();
+
+                    for (let i = 0; i < pts.length; i++) {
+                        let sx = ORIGIN_X + pts[i][0];
+                        let sy = ORIGIN_Y - pts[i][1];
+                        let dist = Math.hypot(mx - sx, my - sy);
+
+                        if (dist <= 15) { // Selection Hitbox
+                            selectedJoint = i;
+                            draw();
+                            return;
+                        }
+                    }
+                    selectedJoint = null;
+                    draw();
+                });
+
+                function updateSimulation() {
+                    if (extending) {
+                        previewLen += STEP_EXTEND;
+                    }
+                    if (rotDir !== 0 && selectedJoint !== null && selectedJoint < vectors.length) {
+                        vectors[selectedJoint][1] += rotDir * STEP_ROTATE;
+                        buildFormula();
+                    }
+                    draw();
+                    requestAnimationFrame(updateSimulation);
+                }
+
+                // Button Events Setup
+                const bindHoldEvents = (btnId, onDown, onUp) => {
+                    const btn = document.getElementById(btnId);
+                    btn.addEventListener('mousedown', onDown);
+                    btn.addEventListener('mouseup', onUp);
+                    btn.addEventListener('mouseleave', onUp);
+                    btn.addEventListener('touchstart', (e) => { e.preventDefault(); onDown(); });
+                    btn.addEventListener('touchend', (e) => { e.preventDefault(); onUp(); });
+                };
+
+                bindHoldEvents('btnExtParams', () => extending = true, () => extending = false);
+                bindHoldEvents('btnRotPos', () => rotDir = 1, () => rotDir = 0);
+                bindHoldEvents('btnRotNeg', () => rotDir = -1, () => rotDir = 0);
+
+                document.getElementById('btnConfirm').addEventListener('click', () => {
+                    if (previewLen >= 5) {
+                        vectors.unshift([previewLen, 0]); // Add to Origin based on arm3.py logic
+                        previewLen = 0;
+                        extending = false;
+                        buildFormula();
+                        // Shift selected joint to match new base if one was selected
+                        if (selectedJoint !== null) selectedJoint++;
+                    }
+                });
+
+                // Init
+                buildFormula();
+                updateSimulation();
+            </script>
+        </section>
+
+        <!-- Homogeneous Transformation 1 -->
+        <section class="slide bg-slate-100">
+            <div class="content">
+                <h2 class="title text-center mb-10">동차변환 행렬의 등장</h2>
+                <div class="grid-2">
+                    <div class="flex flex-col justify-center">
+                        <p class="text mb-6">
+                            로봇 팔이 움직일 때, 단순히 제자리에서 <strong>회전(Rotation)</strong>만 하는 것이 아니라 관절 사이의 길이와 관절 사이의 각도에 따라 공간을
+                            <strong>복잡하게</strong>이동하기도 합니다.
+                        </p>
+                        <p class="text mb-6">
+                            벡터 위치 $P$를 $l$ 만큼 이동시키는 식 $P' = P + l$ 와 회전 식 $P' = R \cdot P$ 를 매번 분리하여 계산하면 매우 복잡해집니다.
+                        </p>
+                        <div class="bg-indigo-900 text-white p-8 rounded-2xl shadow-xl mt-4">
+                            <h3 class="subtitle text-indigo-200 border-indigo-700">핵심 솔루션: 4×4 매트릭스</h3>
+                            <p class="text text-indigo-100">
+                                4차원으로 수식을 확장하여, <span class="text-yellow-300 font-bold">회전(3×3)</span>과 <span
+                                    class="text-green-300 font-bold">이동(3×1)</span>을 한 번의 <strong>행렬 곱셈</strong>만으로 처리할
+                                수 있게 하는 규격입니다.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="img-container">
+                        <img src="image/homo_1.png" alt="동차변환행렬 1">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Homogeneous Transformation 2 & 3 -->
+        <section class="slide bg-white">
+            <div class="content">
+                <h2 class="title text-center mb-10">동차변환 행렬의 구조</h2>
+                <div class="grid-2 gap-16">
+                    <div class="space-y-8 flex flex-col justify-center">
+                        <div class="img-container bg-slate-50">
+                            <img src="image/homo_2.png" alt="동차변환행렬 2">
+                        </div>
+                        <div class="img-container bg-slate-50">
+                            <img src="image/homo_3.png" alt="동차변환행렬 3">
+                        </div>
+                    </div>
+                    <div class="flex flex-col justify-center">
+                        <div class="bg-white p-10 rounded-3xl shadow-lg border-2 border-slate-100">
+                            <h3 class="font-bold text-3xl mb-8 text-slate-800 text-center">T = [ Rotation | Translation
+                                ]</h3>
+
+                            <div class="math-box text-2xl py-10 bg-slate-50 border border-slate-200">
+                                $$ T = \begin{bmatrix} R_{3\times3} & d_{3\times1} \\ O_{1\times3} & 1 \end{bmatrix} $$
+                            </div>
+
+                            <ul class="text space-y-6 mt-10 text-slate-700">
+                                <li class="flex items-start"><i
+                                        class="fas fa-check-circle text-blue-500 mt-2 mr-4 text-xl"></i>
+                                    <div><strong>$R_{3\times3}$ (회전 텐서):</strong> 로봇 관절 축들의 상대적인 기울어짐을 담당합니다.</div>
+                                </li>
+                                <li class="flex items-start"><i
+                                        class="fas fa-arrow-right text-green-500 mt-2 mr-4 text-xl"></i>
+                                    <div><strong>$d_{3\times1}$ (이동 벡터):</strong> 뼈대(링크)의 물리적인 길이나 오프셋 변위를 거리를 나타냅니다.
+                                    </div>
+                                </li>
+                                <li class="flex items-start"><i
+                                        class="fas fa-cube text-slate-400 mt-2 mr-4 text-xl"></i>
+                                    <div><strong>$O_{1\times3}$ & $1$:</strong> 행렬 계산 호환성을 맞춰주는 더미(Dummy) 역할로 투영 기하학적
+                                        요소입니다.</div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- D-H Params 1 -->
+        <section class="slide bg-slate-50">
+            <div class="content">
+                <h2 class="title text-center mb-10">Denavit-Hartenberg (D-H) 표현법 (1)</h2>
+
+                <div class="grid-2 items-center">
+                    <div class="flex flex-col justify-center">
+                        <p class="text mb-8">
+                            수많은 링크와 관절이 직렬로 물린 로봇 매니퓰레이터를 수학적으로 <strong>표준화</strong>하여 모델링하는 세계적인 규칙입니다.
+                        </p>
+                        <div class="bg-blue-900 text-white p-8 rounded-3xl shadow-xl">
+                            <h3 class="subtitle border-blue-700 text-white">4개의 필수 D-H 파라미터</h3>
+                            <ul class="text-white space-y-6 mt-4 list-none pl-2">
+                                <li class="flex items-center"><span
+                                        class="bg-blue-700 w-10 h-10 rounded-full flex items-center justify-center font-bold text-xl mr-4 shadow">θ</span>
+                                    <strong>관절 회전각 (Joint Angle)</strong>&nbsp;: z축 기준 회전
+                                </li>
+                                <li class="flex items-center"><span
+                                        class="bg-blue-700 w-10 h-10 rounded-full flex items-center justify-center font-bold text-xl mr-4 shadow">d</span>
+                                    <strong>링크 오프셋 (Link Offset)</strong>&nbsp;: z축 기준 직선이동
+                                </li>
+                                <li class="flex items-center"><span
+                                        class="bg-blue-700 w-10 h-10 rounded-full flex items-center justify-center font-bold text-xl mr-4 shadow">a</span>
+                                    <strong>링크 길이 (Link Length)</strong>&nbsp;: x축 기준 직선이동
+                                </li>
+                                <li class="flex items-center"><span
+                                        class="bg-blue-700 w-10 h-10 rounded-full flex items-center justify-center font-bold text-xl mr-4 shadow">α</span>
+                                    <strong>링크 비틀림각 (Link Twist)</strong>&nbsp;: x축 기준 회전
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="img-container">
+                        <img src="image/dh_param_1.png" alt="D-H 표현법 1">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- D-H Params 2 & YouTube -->
+        <section class="slide bg-white">
+            <div class="content">
+                <h2 class="title text-center mb-10">Denavit-Hartenberg (D-H) 표현법 (2)</h2>
+
+                <div class="grid-2 items-start">
+                    <!-- Left: Img & Math -->
+                    <div class="flex flex-col">
+                        <div class="img-container mb-8">
+                            <img src="image/dh_param_2.png" alt="D-H 표현법 2">
+                        </div>
+                        <p class="text text-center italic text-slate-500 mb-6">각 링크 간 변환이 체인처럼 연쇄적으로 변환행렬($A_i$)의 곱셈으로
+                            치환됩니다.</p>
+                        <div
+                            class="math-box text-[0.85rem] bg-slate-800 text-white rounded-2xl shadow-lg border-2 border-slate-700 p-8">
+                            $$ A_i = \begin{bmatrix} \cos\theta_i & -\sin\theta_i\cos\alpha_i & \sin\theta_i\sin\alpha_i
+                            & a_i\cos\theta_i \\ \sin\theta_i & \cos\theta_i\cos\alpha_i & -\cos\theta_i\sin\alpha_i &
+                            a_i\sin\theta_i \\ 0 & \sin\alpha_i & \cos\alpha_i & d_i \\ 0 & 0 & 0 & 1 \end{bmatrix} $$
+                        </div>
+                    </div>
+
+                    <!-- Right: YouTube Embed -->
+                    <div
+                        class="bg-red-50 p-10 rounded-3xl border border-red-100 text-center shadow-md h-full flex flex-col justify-center">
+                        <h3 class="font-bold text-red-900 mb-6 text-3xl">
+                            <i class="fab fa-youtube text-red-600 mr-3 text-4xl"></i>
+                            D-H 튜토리얼 영상
+                        </h3>
+                        <p class="text text-red-800 mb-6">TekkotsuRobotics의 영상 자료를 참고하여 파라미터 4가지 지정 과정을 직관적으로 이해할 수
+                            있습니다.</p>
+                        <div class="video-wrapper mt-4">
+                            <iframe src="https://www.youtube-nocookie.com/embed/rA9tm0gTln8"
+                                title="Kinematics parameters tutorial" frameborder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowfullscreen></iframe>
+                        </div>
+                        <div class="mt-8">
+                            <span
+                                class="bg-red-200 text-red-900 px-4 py-2 rounded-full font-semibold text-sm mr-2 shadow-sm">Reference</span>
+                            <span class="text-slate-800 text-lg font-medium">Creator : <span
+                                    class="font-bold text-red-700">TekkotsuRobotics</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Jacobian -->
+        <section class="slide bg-slate-100">
+            <div class="content">
+                <h2 class="title text-center mb-10">자코비안 행렬 (Jacobian Matrix)</h2>
+
+                <div class="grid-2">
+                    <div class="flex flex-col justify-center space-y-8">
+                        <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+                            <p class="text">
+                                자코비안($J$)은 로봇 운동학에서 <strong>'미분 역행렬 브릿지'</strong> 역할을 합니다.
+                            </p>
+                            <p class="text mt-6">
+                                특정 순간의 <strong class="text-blue-600">관절 각속도($\dot{\phi}$)</strong>와 <strong
+                                    class="text-red-500">직교 좌표계 상의 손끝이동 속도($\dot{P}$)</strong> 사이의 선형 관계와 비율을 정의합니다.
+                            </p>
+                        </div>
+
+                        <div class="bg-blue-900 p-8 rounded-3xl shadow-lg border-t-8 border-blue-500">
+                            <h3 class="font-bold text-2xl text-white mb-4">분해속도제어 (RMRC)</h3>
+                            <p class="text text-blue-100 mb-6">
+                                시스템이 그릴 '목표 궤적(원하는 속도 $\dot{P}$)'이 주어지면, 실시간으로 <strong>자코비안 역행렬 $J^{-1}$</strong>을 이용해 각
+                                모터가 돌아야 할 속력($\dot{\phi}$)을 지시합니다.
+                            </p>
+                            <div class="math-box text-blue-900 bg-white shadow-inner font-mono text-xl py-6 rounded-xl">
+                                $$ \dot{\phi} = J^{-1}(\phi)\dot{P} $$
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="img-container">
+                            <img src="image/jacob_1.png" alt="자코비안 행렬 1">
+                        </div>
+                        <div class="img-container">
+                            <img src="image/jacob_2.png" alt="자코비안 행렬 2">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Singularity -->
+        <section class="slide bg-white">
+            <div class="content">
+                <h2 class="title justify-center flex items-center mb-10 text-red-700">
+                    <i class="fas fa-exclamation-triangle mr-4 border-2 p-2 border-red-700 rounded-lg"></i>
+                    특이자세 (Singularity)
+                </h2>
+
+                <div class="grid-2">
+                    <div class="img-container bg-red-50 border-2 border-red-100 p-4">
+                        <img src="image/singularity.png" alt="특이자세">
+                    </div>
+
+                    <div class="flex flex-col justify-center">
+                        <div class="bg-red-50 p-10 rounded-3xl border border-red-200 shadow-sm h-full">
+                            <p class="text mb-8">
+                                분해속도제어(역운동학 속도해석) 중 수학적으로 <strong>자코비안 행렬의 행렬식 $det(J)=0$</strong>이 되는 치명적인 상태입니다.
+                            </p>
+
+                            <div
+                                class="math-box bg-white border border-red-100 text-red-800 text-3xl font-bold py-8 mb-8 shadow-sm">
+                                $$ \det(J) = 0 $$
+                            </div>
+
+                            <p class="text font-bold text-red-900 text-xl border-b border-red-200 pb-4 mb-4">발생 현상 및 문제점
+                            </p>
+                            <ul class="text space-y-4 text-red-800">
+                                <li class="flex items-start"><i class="fas fa-ban mt-2 mr-3 text-red-600"></i> 자코비안 역행렬
+                                    $J^{-1}$ 이 수학적으로 존재하지 않으므로 속도 제어 계산이 폭주(무한대)합니다.</li>
+                                <li class="flex items-start"><i class="fas fa-hand-paper mt-2 mr-3 text-red-600"></i>
+                                    그림체럼 로봇 팔이 완전히 쭉 펴지거나 축이 겹쳐, 물리적으로 특정 자유도(방향)로의 속도를 손실하는 제어 불능 상태가 됩니다.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Conclusion -->
+        <section class="slide bg-slate-900 border-t-8 border-blue-600">
+            <div class="content text-center flex flex-col items-center justify-center space-y-12">
+                <i class="fas fa-robot text-8xl text-blue-400 mb-4 opacity-80"></i>
+                <h1 class="font-bold text-white mb-2 tracking-tight" style="font-size: 4rem;">Q & A 및 마무리</h1>
+                <p class="text text-slate-300 max-w-3xl mx-auto" style="font-size: 1.6rem; line-height: 1.8;">
+                    로봇 제어는 결국 <span
+                        class="bg-blue-900 px-3 py-1 rounded-lg border border-blue-700 shadow font-bold text-blue-200">
+                        행렬</span>과 <span
+                        class="bg-blue-900 px-3 py-1 rounded-lg border border-blue-700 shadow font-bold text-blue-200">미분</span>을
+                    통해 수학적으로 계산해 내는 과정임을 알아볼 수 있었던 것 같습니다. 들어주셔서 감사합니다.
+                </p>
+
+                <div class="border-t border-slate-700 pt-10 mt-10 w-96">
+                    <p class="text-sm font-bold tracking-[0.3em] text-slate-500">END OF PRESENTATION</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        document.addEventListener('keydown', (e) => {
+            // 입력 필드 포커스 시 단축키 비활성화
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            const wrapper = document.querySelector('.presentation-wrapper');
+            const slides = Array.from(document.querySelectorAll('.slide'));
+            const currentScroll = wrapper.scrollTop;
+
+            if (e.key === '1') {
+                // 다음 슬라이드로 이동
+                let nextSlide = null;
+                for (let i = 0; i < slides.length; i++) {
+                    if (slides[i].offsetTop > currentScroll + 10) {
+                        nextSlide = slides[i];
+                        break;
+                    }
+                }
+                if (nextSlide) {
+                    wrapper.scrollTo({
+                        top: nextSlide.offsetTop,
+                        behavior: 'smooth'
+                    });
+                }
+            } else if (e.key === '2') {
+                // 이전 슬라이드로 이동 (선택적 추가 기능)
+                let prevSlide = null;
+                for (let i = slides.length - 1; i >= 0; i--) {
+                    if (slides[i].offsetTop < currentScroll - 10) {
+                        prevSlide = slides[i];
+                        break;
+                    }
+                }
+                if (prevSlide) {
+                    wrapper.scrollTo({
+                        top: prevSlide.offsetTop,
+                        behavior: 'smooth'
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
